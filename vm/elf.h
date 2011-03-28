@@ -242,7 +242,7 @@ typedef struct {
 	Elf32_Word	p_memsz;	/* memory size */
 	Elf32_Word	p_flags;	/* flags */
 	Elf32_Word	p_align;	/* memory & file alignment */
-} Elf32_Phdr;
+} __attribute__((__packed__)) Elf32_Phdr;
 
 /* p_type */
 #define	PT_NULL		0		/* Program header table entry unused */
@@ -283,7 +283,7 @@ typedef struct {
 	Elf32_Word	sh_info;	/* misc info */
 	Elf32_Word	sh_addralign;	/* memory alignment */
 	Elf32_Word	sh_entsize;	/* table entry size */
-} Elf32_Shdr;
+} __attribute__((__packed__)) Elf32_Shdr;
 
 /* sh_type */
 #define	SHT_NULL		0		/* Section header table entry unused */
@@ -328,7 +328,7 @@ typedef struct {
 	Elf_Byte	st_info;	/* type / binding attrs */
 	Elf_Byte	st_other;	/* unused */
 	Elf32_Half	st_shndx;	/* section index of symbol */
-} Elf32_Sym;
+} __attribute__((__packed__)) Elf32_Sym;
 
 /* Symbol Table index of the undefined symbol */
 #define	ELF_SYM_UNDEFINED	0
