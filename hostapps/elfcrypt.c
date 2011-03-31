@@ -43,7 +43,8 @@
 #include "util.h"
 
 static void check_eh_limits(const Elf32_Ehdr*, size_t);
-static void crypt_segment(const struct rc5_key*, char*, Elf32_Phdr*);
+static void crypt_segment(const struct rc5_key *pk, char *elf,
+	mips_uword base, unsigned offset, unsigned size);
 
 static void randomize_key(struct rc5_key *key)
 {
@@ -74,7 +75,9 @@ int main(int argc, char **argv)
 	Elf32_Ehdr *eh;
 	Elf32_Phdr *ph;
 	FILE *out;
-	unsigned i, cnt;
+	unsigned i, cnt, head_size;
+	mips_uword vaddr;
+	unsigned size, offset;
 	
 	if(argc < 3) {
 		fprintf(stderr, "USAGE: %s ELF-IN ELF-OUT HEXKEY\n", argv[0]);
@@ -95,24 +98,39 @@ int main(int argc, char **argv)
 	eh = (Elf32_Ehdr*)elf;
 	check_eh_limits(eh, elfsz);
 
+	head_size = eh->e_ehsize + eh->e_phnum*eh->e_phentsize;
+
 	/* Iterate segments, check bounds and encrypt PT_LOAD. */
 	for(i = 0, cnt = 0; i < eh->e_phnum; i++) {
-
 		ph = (Elf32_Phdr*)(elf + eh->e_phoff + i*sizeof(Elf32_Phdr));
 
 		if(ph->p_type != PT_LOAD)
 			continue;
+
 		++cnt;
 		if(ph->p_offset + ph->p_filesz >= elfsz) {
 			fprintf(stderr, "input segment %u is out of ELF bounds\n", i);
 			exit(1);
 		}
+
 		if((ph->p_filesz % RC5_BLOCKSZ) || (ph->p_memsz % RC5_BLOCKSZ)) {
 			/* 4 bytes is the cipher block size */
 			fprintf(stderr, "input segment file/memory size is not a multiple of 4\n");
 			exit(1);
 		}
-		crypt_segment(&key, elf, ph+i);
+		if (ph->p_offset <= head_size) { /* Avoid encrypting the ELF headers */
+			int head_end = head_size - ph->p_offset;
+			
+			vaddr = ph->p_vaddr+head_end;
+			size = ph->p_filesz-head_end;
+			offset = ph->p_offset+head_end;
+		} else {
+			vaddr = ph->p_vaddr;
+			size = ph->p_filesz;
+			offset = ph->p_offset;
+		}
+		printf("Encrypting %u bytes at vaddr %.8x (offset: %u)\n", size, vaddr, offset);
+		crypt_segment(&key, elf, vaddr, offset, size);
 	}
 
 	if(!cnt) {
@@ -131,12 +149,13 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static void crypt_segment(const struct rc5_key *pk, char *elf, Elf32_Phdr *ph)
+static void crypt_segment(const struct rc5_key *pk, char *elf,
+	mips_uword base, unsigned offset, unsigned size)
 {
-	char *p = elf + ph->p_offset;
+	char *p = elf + offset;
 	unsigned i;
 
-	for(i = 0; i < ph->p_filesz; i += RC5_BLOCKSZ)
+	for(i = 0; i < size; i += RC5_BLOCKSZ)
 		rc5_ecb_encrypt(pk, p+i, p+i);
 }
 
