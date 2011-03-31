@@ -354,7 +354,8 @@ static const char *get_string(const char *elf, size_t elfsz,
 	Elf32_Off off = sh->sh_offset + ndx;
 	size_t i;
 
-	if((sh->sh_type != SHT_STRTAB) || (ndx >= sh->sh_size) || (off >= elfsz))
+	if((sh->sh_type != SHT_STRTAB) || (ndx >= sh->sh_size) || (off >= elfsz) ||
+		(sh->sh_offset + sh->sh_size -1) >= elfsz)
 		return NULL;
 	
 	/* Check that the string doesn't go out of bounds of its section.  No
@@ -362,7 +363,7 @@ static const char *get_string(const char *elf, size_t elfsz,
 	 * just suck. */
 
 	for(i = ndx; i < sh->sh_size; i++)
-		if(!elf[off+i])
+		if(!elf[sh->sh_offset+i])
 			return elf+off;
 	
 	/* 0-terminator not found before section end. */
