@@ -1,0 +1,27 @@
+==
+COPYRIGHT NOTICE
+==
+
+All modifications in this distribution, unless otherwise explicitly noted, are
+
+  (c) 2011 Katholieke Universiteit Leuven
+
+and placed under the license of the original CSPIM. 
+Author is Nikos Mavrogiannopoulos.
+
+
+Modifications to CSPIM simulator:
+
+1. ELF headers and segment headers are not encrypted to allow
+loading of file segments by the emulator.
+
+2. Segments on ELF files that are not understood are ignored
+(but not encrypted).
+
+3. Fixes in symbol extraction.
+
+4. Fixes in segment header traversal (previous code only
+operated if the LOAD segment was positioned first).
+
+5. Elfcrypt generates keys randomly if one is not provided.
+
