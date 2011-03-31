@@ -1,0 +1,22 @@
+===
+How to generate an encrypted code and run it on your project?
+===
+
+1. Create the code to be protected. It must not contain library
+calls. There is a number of calls supported in spsim.h. 
+
+2. Compile spsim.c and your C file using a MIPS cross compiler
+(I use the openwrt MIPS compiler). For C flags use 
+"-mips1 -mno-check-zero-division -mlong-calls". For linking use
+"-nostdlib -Wl,-q,-e,_start" to gcc. Note the -e _start might
+not be required.
+
+3. Encrypt the generated ELF file using elfcrypt. E.g:
+$ elfcrypt ./a.out ./a.out.encr
+
+4. Test it using 
+$ run ./a.out.encr KEY
+
+5. Read run.c and include its functionality to your program.
+
+6. Link your program against libmipsvm.a
