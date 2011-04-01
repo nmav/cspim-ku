@@ -1,0 +1,6 @@
+project(CSPIMLIB_MIPS)
+set(CMAKE_C_COMPILER mipsel-elf-gcc)
+add_definitions(-Wall -O3 -mips1 -mno-check-zero-division -mlong-calls)
+set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-q")
+set(SOURCES mips.c)
+set(SOURCES syscalls.c)

@@ -8,11 +8,12 @@ calls. There is a number of calls supported in spsim.h.
 2. Compile spsim.c and your C file using a MIPS cross compiler
 (I use the openwrt MIPS compiler). For C flags use 
 "-mips1 -mno-check-zero-division -mlong-calls". For linking use
-"-nostdlib -Wl,-q,-e,_start" to gcc. Note the -e _start might
-not be required.
+"-nostdlib -Wl,-q" to gcc. Link it with libmips/mips.o and/or
+libmips/syscalls.o.
 
 3. Encrypt the generated ELF file using elfcrypt. E.g:
 $ hostapps/elfcrypt ./a.out ./a.out.encr
+(a random key will be printed)
 
 4. Test it using 
 $ hostapps/run ./a.out.encr KEY

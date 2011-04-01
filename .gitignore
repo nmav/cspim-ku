@@ -37,3 +37,5 @@ vm/Makefile
 vm/cmake_install.cmake
 vm/libmipsvm.a
 *~
+cspimapps/test
+libmips/*.o

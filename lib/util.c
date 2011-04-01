@@ -42,7 +42,7 @@
 static mips_uword cipher_peek(MIPS_CPU *pcpu, mips_uword addr);
 static void cipher_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w);
 
-void read_elf(const char *fname, char **elf, size_t *elfsz)
+void read_elf(const char *fname, char **elf, unsigned *elfsz)
 {
 	FILE *f;
 	long sz;
@@ -95,7 +95,7 @@ int cspim_hex_convert_key(struct cipher_key *pk, const char *hex)
 int cspim_cpu_prepare_file(cspim_cpu_t _pcpu, const char *exename, const char *asckey)
 {
 	char *elf;
-	size_t elfsz;
+	unsigned elfsz;
 	
 	read_elf(exename, &elf, &elfsz);
 	
@@ -231,7 +231,6 @@ execute:
 		return 0;
 	case MIPS_I_SYSCALL:
 		if (fn) {
-	mips_dump_cpu(pcpu);
 			ret = fn(pcpu->r.ur[2], pcpu->r.ur[4], 
 				pcpu->r.ur[5], pcpu->r.ur[6], 
 				pcpu->r.ur[7], pcpu->r.ur[8]);

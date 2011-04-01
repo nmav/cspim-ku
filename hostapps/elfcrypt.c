@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 {
 	struct cipher_key key;
 	char *elf;
-	size_t elfsz;
+	unsigned elfsz;
 	Elf32_Ehdr *eh;
 	Elf32_Phdr *ph;
 	FILE *out;

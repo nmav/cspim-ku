@@ -49,7 +49,7 @@ struct cipher_key {
 };
 
 /** Allocate space and read the complete ELF into memory. */
-void read_elf(const char *fname, char **elf, size_t *elfsz);
+void read_elf(const char *fname, char **elf, unsigned *elfsz);
 
 /** Convert key from a string of 32 hex digits. */
 int cspim_hex_convert_key(struct cipher_key *pk, const char *hex);
