@@ -70,7 +70,7 @@ int lseek(int fd, unsigned off, int whence)
 	return (int)SYSCALL(17);
 }
 
-void _start(void)
+void __start(void)
 {
 	asm volatile("jal main ; break 0");
 }

@@ -3,7 +3,7 @@ set(CMAKE_SYSTEM_NAME "Generic")
 set(CMAKE_C_COMPILER mipsel-elf-gcc)
 add_definitions(-Wall -O3 -mips1 -mno-check-zero-division -mlong-calls)
 #The -nostdlib option in my gcc causes _start to be used instead of __start
-set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-q,-e,_start")
+set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-q")
 
 add_executable(cputorture cputorture.s)
 set_property(SOURCE cputorture.s PROPERTY LANGUAGE C)
