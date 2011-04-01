@@ -39,14 +39,13 @@
 #include <string.h>
 #include "types.h"
 #include "elf.h"
-#include "rc5-16.h"
-#include "util.h"
+#include "cspim.h"
 
 static void check_eh_limits(const Elf32_Ehdr*, size_t);
-static void crypt_segment(const struct rc5_key *pk, char *elf,
+static void crypt_segment(const struct cipher_key *pk, char *elf,
 	mips_uword base, unsigned offset, unsigned size);
 
-static void randomize_key(struct rc5_key *key)
+static void randomize_key(struct cipher_key *key)
 {
 	FILE* fd;
 	int i;
@@ -69,7 +68,7 @@ static void randomize_key(struct rc5_key *key)
 
 int main(int argc, char **argv)
 {
-	struct rc5_key key;
+	struct cipher_key key;
 	char *elf;
 	size_t elfsz;
 	Elf32_Ehdr *eh;
@@ -87,12 +86,12 @@ int main(int argc, char **argv)
 	if (argc == 3) {
 		randomize_key(&key);
 	} else {
-		if(!rc5_convert_key(&key, argv[3])) {
+		if(!cspim_hex_convert_key(&key, argv[3])) {
 			fprintf(stderr, "can't convert key to internal form\n");
 			return 1;
 		}
 	}
-	rc5_setup(&key);
+	cipher_setup(&key);
 
 	read_elf(argv[1], &elf, &elfsz);
 	eh = (Elf32_Ehdr*)elf;
@@ -149,7 +148,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static void crypt_segment(const struct rc5_key *pk, char *elf,
+static void crypt_segment(const struct cipher_key *pk, char *elf,
 	mips_uword base, unsigned offset, unsigned size)
 {
 	char *p = elf + offset;
@@ -163,7 +162,7 @@ static void crypt_segment(const struct rc5_key *pk, char *elf,
                 ctr[1] = (w) >> 8;
 		ctr[2] = (w) >> 16;
 		ctr[3] = (w) >> 24;
-		rc5_ctr_encrypt(pk, ctr, p+i, p+i);
+		cipher_ctr_encrypt(pk, ctr, p+i, p+i);
 	}
 }
 

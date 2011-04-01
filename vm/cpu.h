@@ -100,6 +100,7 @@ struct mips_cpu {
 	mips_peek_uw_f peek_uw;	/**!< How to read words from memory. */
 	mips_poke_uw_f poke_uw;	/**!< How to write words to memory. */
 	int fds[MIPS_MAXFDS];	/**!< File descriptor map. */
+        void * priv;            /**!< Private data. */
 };
 
 /** Execution exception code. */

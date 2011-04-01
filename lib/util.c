@@ -2,9 +2,11 @@
  * File:    util.c
  * Author:  zvrba
  * Created: 2008-04-09
+ * Modified: 2011-04-01 by Nikos Mavrogiannopoulos
  *
  * ===========================================================================
  * COPYRIGHT (c) 2008 Zeljko Vrba <zvrba.external@zvrba.net>
+ * COPYRIGHT (c) 2011 Katholieke Universiteit Leuven
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -33,13 +35,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "util.h"
-#include "rc5-16.h"
+#include "cpu.h"
+#include "cspim.h"
 
-static struct rc5_key Gkey;
 
-static mips_uword rc5_peek(MIPS_CPU *pcpu, mips_uword addr);
-static void rc5_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w);
+static mips_uword cipher_peek(MIPS_CPU *pcpu, mips_uword addr);
+static void cipher_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w);
 
 void read_elf(const char *fname, char **elf, size_t *elfsz)
 {
@@ -75,7 +76,7 @@ void read_elf(const char *fname, char **elf, size_t *elfsz)
 	*elfsz = sz;
 }
 
-int rc5_convert_key(struct rc5_key *pk, const char *hex)
+int cspim_hex_convert_key(struct cipher_key *pk, const char *hex)
 {
 	unsigned v;
 	int i;
@@ -90,33 +91,87 @@ int rc5_convert_key(struct rc5_key *pk, const char *hex)
 	return 1;
 }
 
-void prepare_cpu(MIPS_CPU *pcpu, const char *exename, const char *asckey)
+/* Returns 0 on success */
+int cspim_cpu_prepare_file(cspim_cpu_t _pcpu, const char *exename, const char *asckey)
 {
 	char *elf;
 	size_t elfsz;
 	
 	read_elf(exename, &elf, &elfsz);
+	
+	return cspim_cpu_prepare_mem(_pcpu, elf, elfsz, asckey);
+}
+
+/* Returns 0 on success */
+int cspim_cpu_prepare_mem(cspim_cpu_t _pcpu, void* elf, unsigned int elfsz, const char *asckey)
+{
+	struct cipher_key* Gkey;
+	MIPS_CPU* pcpu = _pcpu;
+	
+	Gkey = malloc(sizeof(struct cipher_key));
+	if (Gkey == NULL) {
+		fprintf(stderr, "error allocating memory\n");
+		return -1;
+	}
+	
+	pcpu->priv = NULL;
+
 	if(asckey) {
-		if(!rc5_convert_key(&Gkey, asckey)) {
+		if(!cspim_hex_convert_key(Gkey, asckey)) {
 			fprintf(stderr, "can't convert key\n");
-			exit(1);
+			return -1;
 		}
-		rc5_setup(&Gkey);
-		pcpu->peek_uw = rc5_peek;
-		pcpu->poke_uw = rc5_poke;
+		cipher_setup(Gkey);
+		pcpu->priv = Gkey;
+		pcpu->peek_uw = cipher_peek;
+		pcpu->poke_uw = cipher_poke;
 	}
 	if(mips_elf_load(pcpu, elf, elfsz) < 0) {
 		fprintf(stderr, "error preparing ELF for execution\n");
-		exit(1);
+		return -1;
 	}
+	
+	return 0;
 }
 
-void execute_loop(MIPS_CPU *pcpu)
+void cspim_cpu_deinit(cspim_cpu_t _pcpu)
+{
+MIPS_CPU* pcpu = _pcpu;
+
+	free(pcpu->priv);
+	pcpu->priv = NULL;
+	free(pcpu->base);
+}
+
+int cspim_cpu_init(cspim_cpu_t *pcpu, unsigned int memsz, unsigned int stacksz)
+{
+void * base;
+MIPS_CPU* p;
+
+	mips_init();
+	
+	base = malloc(memsz);
+	if (base == NULL)
+		return -1;
+
+	*pcpu = mips_init_cpu(base, memsz, stacksz);
+
+	if (*pcpu != NULL) {
+		p = *pcpu;
+		p->priv = NULL;
+		return 0;
+	} else
+		return -1;
+
+}
+
+int cspim_execute_spim(cspim_cpu_t _pcpu)
 {
 	enum mips_exception err;
 	Elf32_Sym *sym;
 	const char *symname;
 	int opcode, break_code;
+	MIPS_CPU *pcpu = _pcpu;
 
 execute:
 	while((err = mips_execute(pcpu)) == MIPS_E_OK)
@@ -125,16 +180,16 @@ execute:
 	switch(opcode) {
 	case MIPS_I_BREAK:
 		fprintf(stderr, "END: BREAK %d\n", break_code);
-		return;
+		return 0;
 	case MIPS_I_SYSCALL:
 		if(break_code != MIPS_SPIM_SYSCALL) {
 			fprintf(stderr, "END: INVALID SYSCALL CODE %d\n", break_code);
-			return;
+			return -1;
 		}
 		if((err = mips_spim_syscall(pcpu)) != 0) {
 			fprintf(stderr, "END: SPIM SERVICE %d FAULTED (%d)\n",
 					pcpu->r.ur[2], err);
-			return;
+			return -1;
 		}
 		mips_resume(pcpu);
 		goto execute;
@@ -146,10 +201,58 @@ execute:
 		fprintf(stderr, "\n");
 		break;
 	}
-	return;
+	return -1;
 }
 
-static mips_uword rc5_peek(MIPS_CPU *pcpu, mips_uword addr)
+int cspim_execute(cspim_cpu_t _pcpu, int loops, cspim_syscall_fn fn)
+{
+	enum mips_exception err;
+	Elf32_Sym *sym;
+	const char *symname;
+	int opcode, break_code;
+	int ret;
+	MIPS_CPU *pcpu = _pcpu;
+
+execute:
+	if (loops == -1) {
+		while((err = mips_execute(pcpu)) == MIPS_E_OK)
+			;
+	} else {
+		err = MIPS_E_OK;
+		for (;loops >= 0;loops--) {
+			err = mips_execute(pcpu);
+			if (err != MIPS_E_OK) break;
+		}
+		if (err == MIPS_E_OK && loops == 0) return 0;
+	}
+	break_code = mips_break_code(pcpu, &opcode);
+	switch(opcode) {
+	case MIPS_I_BREAK:
+		return 0;
+	case MIPS_I_SYSCALL:
+		if (fn) {
+	mips_dump_cpu(pcpu);
+			ret = fn(pcpu->r.ur[2], pcpu->r.ur[4], 
+				pcpu->r.ur[5], pcpu->r.ur[6], 
+				pcpu->r.ur[7], pcpu->r.ur[8]);
+			pcpu->r.sr[2] = ret;
+		} else {
+			pcpu->r.sr[2] = -1;
+		}
+		mips_resume(pcpu);
+		goto execute;
+	default:
+		fprintf(stderr, "END: EXCEPTION %d AT PC=%08x", err, pcpu->pc);
+		if((sym = mips_elf_find_address(pcpu, pcpu->pc)) &&
+		   (symname = mips_elf_get_symname(pcpu, sym)))
+			fprintf(stderr, " (near %s)", symname);
+		fprintf(stderr, "\n");
+		break;
+	}
+	return -1;
+}
+
+static mips_uword cipher_peek(MIPS_CPU *pcpu, mips_uword addr)
 {
 	mips_uword ret = mips_identity_peek_uw(pcpu, addr);
 	unsigned char ctr[4];
@@ -159,11 +262,11 @@ static mips_uword rc5_peek(MIPS_CPU *pcpu, mips_uword addr)
 	ctr[2] = (addr) >> 16;
 	ctr[3] = (addr) >> 24;
 
-	rc5_ctr_decrypt(&Gkey, &ctr, &ret, &ret);
+	cipher_ctr_decrypt(pcpu->priv, &ctr, &ret, &ret);
 	return ret;
 }
 
-static void rc5_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w)
+static void cipher_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w)
 {
 	unsigned char ctr[4];
 	
@@ -172,6 +275,12 @@ static void rc5_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w)
 	ctr[2] = (addr) >> 16;
 	ctr[3] = (addr) >> 24;
 
-	rc5_ctr_encrypt(&Gkey, &ctr, &w, &w);
+	cipher_ctr_encrypt(pcpu->priv, &ctr, &w, &w);
 	mips_identity_poke_uw(pcpu, addr, w);
 }
+
+void cspim_mips_dump_cpu(cspim_cpu_t pcpu)
+{
+	mips_dump_cpu(pcpu);
+}
+

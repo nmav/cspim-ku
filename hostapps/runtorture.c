@@ -36,43 +36,41 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpu.h"
-#include "util.h"
+#include "cspim.h"
 
 #define MEMSZ (2U << 24)
 #define STKSZ (16U << 10)
 
-static void execute(struct mips_cpu*);
+static void execute(cspim_cpu_t);
 static void printaddr(struct mips_cpu*, const char*, unsigned);
 
 int main(int argc, char **argv)
 {
-	char *base;
-	struct mips_cpu *pcpu;
+	cspim_cpu_t pcpu;
 	
 	if((argc != 2) && (argc != 3)) {
 		fprintf(stderr, "USAGE: %s ELF\n", argv[0]);
 		exit(1);
 	}
-	if(!(base = malloc(MEMSZ))) {
-		perror("malloc");
-		exit(1);
-	}
 
 	mips_init(); 
-	pcpu = mips_init_cpu(base, MEMSZ, STKSZ);
-	prepare_cpu(pcpu, argv[1], (argc == 3) ? argv[2] : NULL);
+	cspim_cpu_init(&pcpu, MEMSZ, STKSZ);
+	cspim_cpu_prepare_file(pcpu, argv[1], (argc == 3) ? argv[2] : NULL);
 	execute(pcpu);
 	
-    return 0;
+	cspim_cpu_deinit(pcpu);
+
+	return 0;
 }
 
-static void execute(struct mips_cpu *pcpu)
+static void execute(cspim_cpu_t _pcpu)
 {
 	size_t last_branch = 0;
 	enum mips_exception err;
 	Elf32_Sym *sym;
 	const char *symname;
 	int opcode;
+	MIPS_CPU* pcpu = _pcpu;
 
 	while(1) {
 		if(pcpu->delay_slot)

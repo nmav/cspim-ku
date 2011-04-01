@@ -12,11 +12,17 @@ calls. There is a number of calls supported in spsim.h.
 not be required.
 
 3. Encrypt the generated ELF file using elfcrypt. E.g:
-$ elfcrypt ./a.out ./a.out.encr
+$ hostapps/elfcrypt ./a.out ./a.out.encr
 
 4. Test it using 
-$ run ./a.out.encr KEY
+$ hostapps/run ./a.out.encr KEY
 
-5. Read run.c and include its functionality to your program.
+5. Similarly to run.c include cspim.h and use a similar program:
+	cspim_cpu_init(&pcpu, MEMSZ, STKSZ);
+	cspim_cpu_prepare_file(pcpu, filename, hexkey);
+	if (cspim_execute(pcpu, -1, syscall_fn) < 0) {
+  	    cspim_mips_dump_cpu(pcpu);
+        }
+	cspim_cpu_deinit(pcpu);
 
-6. Link your program against libmipsvm.a
+6. Link your program against libcspim.a

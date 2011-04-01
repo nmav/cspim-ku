@@ -36,17 +36,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "cpu.h"
-#include "rc5-16.h"
-#include "util.h"
+#include "cspim.h"
 
 #define MEMSZ (2U << 24)
 #define STKSZ (16U << 10)
 
+static int syscall_fn(unsigned int no, uint32_t arg1, uint32_t arg2, uint32_t arg3,
+  uint32_t arg4, uint32_t arg5)
+{
+	fprintf(stderr, "executed syscall %u with arg1 %.8x and arg2 %.8x\n", no,
+		(unsigned int)arg1, (unsigned int)arg2);
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	char *base;
-	struct mips_cpu *pcpu;
+	cspim_cpu_t pcpu;
 	
 	if((argc != 2) && (argc != 3)) {
 		fprintf(stderr, "USAGE: %s ELF [KEY]\n", argv[0]);
@@ -57,11 +64,13 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	mips_init();
-	pcpu = mips_init_cpu(base, MEMSZ, STKSZ);
-	prepare_cpu(pcpu, argv[1], (argc == 3) ? argv[2] : NULL);
-	execute_loop(pcpu);
-	mips_dump_cpu(pcpu);
+	cspim_cpu_init(&pcpu, MEMSZ, STKSZ);
+	cspim_cpu_prepare_file(pcpu, argv[1], (argc == 3) ? argv[2] : NULL);
+	if (cspim_execute(pcpu, -1, syscall_fn) < 0) {
+  	    cspim_mips_dump_cpu(pcpu);
+        }
+
+	cspim_cpu_deinit(pcpu);
 
     return 0;
 }

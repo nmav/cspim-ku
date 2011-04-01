@@ -36,8 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cpu.h"
-#include "rc5-16.h"
-#include "util.h"
+#include "cspim.h"
 
 #define MEMSZ (2U << 20)
 #define STKSZ (16U << 10)
@@ -87,7 +86,7 @@ int main(int argc, char **argv)
 
 	/* Execute stuff. */
 
-	execute_loop(pcpu);
+	cspim_execute_spim(pcpu);
 	mips_dump_cpu(pcpu);
 
     return 0;

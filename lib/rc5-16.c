@@ -34,7 +34,7 @@
  * with some details changed to make it truly independent of the word size.
  */
 
-#include "rc5-16.h"
+#include "cspim.h"
 #include <stdint.h>
 
 #define WSZ		16				/* word size */
@@ -68,7 +68,7 @@ static inline RC5_WORD ror(RC5_WORD x, RC5_WORD n)
 	return (x >> n) | (x << (WSZ-n));
 }
 
-void rc5_setup(struct rc5_key *ks)
+void cipher_setup(struct cipher_key *ks)
 {
 #define K(i) ((RC5_WORD)ks->key[i])
 #define S(i) (ks->S[i])
@@ -104,7 +104,7 @@ void rc5_setup(struct rc5_key *ks)
 #undef S
 }
 
-void rc5_ecb_encrypt(const struct rc5_key *ks, void *srcv, void *dstv)
+static void rc5_ecb_encrypt(const struct cipher_key *ks, void *srcv, void *dstv)
 {
 #define S(i) (ks->S[i])
 	unsigned char *src = srcv;
@@ -128,7 +128,7 @@ void rc5_ecb_encrypt(const struct rc5_key *ks, void *srcv, void *dstv)
 
 /* Encrypts in CTR-32bit mode. counter should be a unique IV.
  */
-void rc5_ctr_encrypt(const struct rc5_key *ks, void* counter, void *_src, void *_dst)
+void cipher_ctr_encrypt(const struct cipher_key *ks, void* counter, void *_src, void *_dst)
 {
 uint32_t* dst = _dst;
 uint32_t src = *((uint32_t*)_src);
@@ -138,7 +138,7 @@ uint32_t src = *((uint32_t*)_src);
 	*dst ^= src;
 }
 
-void rc5_ecb_decrypt(const struct rc5_key *ks, void *srcv, void *dstv)
+static void rc5_ecb_decrypt(const struct cipher_key *ks, void *srcv, void *dstv)
 {
 #define S(i) (ks->S[i])
 	unsigned char *src = srcv;
@@ -171,7 +171,7 @@ void rc5_ecb_decrypt(const struct rc5_key *ks, void *srcv, void *dstv)
 int main(void)
 {
 	RC5_WORD pt1[2], pt2[2], ct[2] = { 0, 0 };
-	struct rc5_key key;
+	struct cipher_key key;
 	int i, j;
 
 	for(i = 1; i < 6; i++) {
