@@ -10,10 +10,14 @@ calls. There is a number of calls supported in spsim.h.
 "-mips1 -mno-check-zero-division -mlong-calls". For linking use
 "-nostdlib -Wl,-q" to gcc. Link it with libmips/mips.o and/or
 libmips/syscalls.o.
+(my compiler -gcc 4.2.4- required -O0 or the generated code 
+was not correct)
 
 3. Encrypt the generated ELF file using elfcrypt. E.g:
 $ hostapps/elfcrypt ./a.out ./a.out.encr
 (a random key will be printed)
+You can verify that the .text section is encrypted by
+reading it using mipsel-linux-objdump -d -j .text ./a.out.encr
 
 4. Test it using 
 $ hostapps/run ./a.out.encr KEY

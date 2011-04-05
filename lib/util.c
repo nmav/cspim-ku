@@ -204,7 +204,7 @@ execute:
 	return -1;
 }
 
-int cspim_execute(cspim_cpu_t _pcpu, int loops, cspim_syscall_fn fn)
+int cspim_execute(cspim_cpu_t _pcpu, int loops, void* priv, cspim_syscall_fn fn)
 {
 	enum mips_exception err;
 	Elf32_Sym *sym;
@@ -231,7 +231,7 @@ execute:
 		return 0;
 	case MIPS_I_SYSCALL:
 		if (fn) {
-			ret = fn(pcpu->r.ur[2], pcpu->r.ur[4], 
+			ret = fn(priv, pcpu->r.ur[2], pcpu->r.ur[4], 
 				pcpu->r.ur[5], pcpu->r.ur[6], 
 				pcpu->r.ur[7], pcpu->r.ur[8]);
 			pcpu->r.sr[2] = ret;
@@ -283,3 +283,12 @@ void cspim_mips_dump_cpu(cspim_cpu_t pcpu)
 	mips_dump_cpu(pcpu);
 }
 
+int cspim_mips_write(cspim_cpu_t pcpu, uint32_t dst, void *src, unsigned int n)
+{
+	return mips_copyout(pcpu, dst, src, n);
+}
+
+int cspim_mips_read(cspim_cpu_t pcpu, void *dst, uint32_t src, unsigned int n)
+{
+	return mips_copyin(pcpu, dst, src, n);
+}

@@ -1,10 +1,10 @@
 /* 
  * File:    run.c
- * Author:  zvrba
- * Created: 2008-02-20
+ * Author:  nmav
+ * Created: 2011-04-04
  *
  * ===========================================================================
- * COPYRIGHT (c) 2008 Zeljko Vrba <zvrba.external@zvrba.net>
+ * COPYRIGHT (c) 2011 Katholieke Universiteit Leuven
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,35 +25,57 @@
  * DEALINGS IN THE SOFTWARE.
  * ===========================================================================
  */
-/**
- * @file
- * Load and execute a little-endian MIPS file that exercies SPIM stuff.  The
- * execution stops at first exception which is printed to stderr.  If the
- * exception is caused by BREAK or unsupported SYSCALL instruction, the code
- * is in addition printed to stdout.  Also supports execution of executables
- * encrypted with elfcrypt.
- */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "cspim.h"
 
-#define MEMSZ (2U << 24)
-#define STKSZ (16U << 10)
+#define MEMSZ (16*1024*1024)
+#define STKSZ (64*1024)
 
-static int syscall_fn(void* priv, unsigned int no, uint32_t arg1, uint32_t arg2, uint32_t arg3,
+typedef struct {
+	cspim_cpu_t pcpu;
+	char* text;
+	unsigned char md5[16];
+	int ok;
+} priv_st;
+
+static int syscall_fn(void* _priv, unsigned int no, uint32_t arg1, uint32_t arg2, uint32_t arg3,
   uint32_t arg4, uint32_t arg5)
 {
-	fprintf(stderr, "executed syscall %u with arg1 %.8x and arg2 %.8x\n", no,
-		(unsigned int)arg1, (unsigned int)arg2);
-
-	return 0;
+	priv_st* priv = _priv;
+	int len;
+	
+	switch(no) {
+		case 1: /* write the text to be hashed */
+			len = strlen(priv->text);
+			cspim_mips_write(priv->pcpu, arg1, priv->text, len);
+			return len;
+		case 2: /* read the hashed text */
+			if (arg2 != 16) {
+				fprintf(stderr, "illegal size of %u\n", arg2);
+				exit(1);
+			}
+			cspim_mips_read(priv->pcpu, priv->md5, arg1, arg2);
+			priv->ok = 1;
+			return 0;
+		default:
+			fprintf(stderr, "syscall %u with arg1 %.8x and arg2 %.8x\n", no,
+				(unsigned int)arg1, (unsigned int)arg2);
+			return -1;
+	}
 }
 
 int main(int argc, char **argv)
 {
 	char *base;
 	cspim_cpu_t pcpu;
+	priv_st priv;
+	int i;
+	unsigned char res[] = "\x84\xd2\xac\xe4\x96\x06\xee\x28\x92\x4b\x24\xcf\xc9\x5b\x9d\x3c";
+
+	memset(&priv, 0, sizeof(priv));
 	
 	if((argc != 2) && (argc != 3)) {
 		fprintf(stderr, "USAGE: %s ELF [KEY]\n", argv[0]);
@@ -66,12 +88,29 @@ int main(int argc, char **argv)
 
 	cspim_cpu_init(&pcpu, MEMSZ, STKSZ);
 	cspim_cpu_prepare_file(pcpu, argv[1], (argc == 3) ? argv[2] : NULL);
-	if (cspim_execute(pcpu, -1, NULL, syscall_fn) < 0) {
+	
+	priv.pcpu = pcpu;
+	priv.text = "A long text to hash, and hash, and hash and hash...";
+
+	if (cspim_execute(pcpu, -1, &priv, syscall_fn) < 0) {
   	    cspim_mips_dump_cpu(pcpu);
         }
 
 	cspim_cpu_deinit(pcpu);
+	
+	if (priv.ok) {
+		printf("Hashed: '%s'\nResult: ", priv.text);
+		for (i=0;i<sizeof(priv.md5);i++)
+			printf("%.2x:", priv.md5[i]);
+		printf("\n");
+		if (memcmp(priv.md5, res, 16) != 0) {
+			fprintf(stderr, "MD5 result does not match the expected\n");
+		}
+	} else {
+		fprintf(stderr, "Could not hash\n");
+		exit(1);
+	}
 
-    return 0;
+	return 0;
 }
 

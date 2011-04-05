@@ -74,10 +74,27 @@ void cspim_cpu_deinit(cspim_cpu_t pcpu);
  */
 int cspim_execute_spim(cspim_cpu_t _pcpu);
 
-typedef int (*cspim_syscall_fn)(unsigned int no, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
-int cspim_execute(cspim_cpu_t _pcpu, int loops, cspim_syscall_fn fn);
+typedef int (*cspim_syscall_fn)(void* priv, unsigned int no, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
+int cspim_execute(cspim_cpu_t _pcpu, int loops, void* priv, cspim_syscall_fn fn);
 
 void cspim_mips_dump_cpu(cspim_cpu_t pcpu);
+
+/*@{*/
+/**
+ * Copy (potentially unaligned) data from host to the simulator (out), or from
+ * simulator to the host (in).  In the case of failure, the state of the MIPS
+ * simulator has not been altered.
+ *
+ * @param pcpu CPU state.
+ * @param dst  Destination address in MIPS (out) or host (in).
+ * @param src  Source address in host (out) or MIPS (in).
+ * @param n    Number of bytes to copy.
+ * @return 0 on success, -1 on failure (i.e. the transfer would access memory
+ * outside of MIPS segment).
+ */
+int cspim_mips_write(cspim_cpu_t pcpu, uint32_t dst, void *src, unsigned int n);
+int cspim_mips_read(cspim_cpu_t pcpu, void *dst, uint32_t src, unsigned int n);
+/*@}*/
 
 /* CIPHER operations 
  */

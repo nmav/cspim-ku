@@ -5,8 +5,8 @@
  *
  * Interface to system calls.
  */
-#ifndef CSPIM_MIPS_H__
-#define CSPIM_MIPS_H__
+#ifndef CSPIM_MIPS_H
+#define CSPIM_MIPS_H
 
 #define SYSCALL1( n, arg1) \
 ({ \
@@ -73,6 +73,30 @@ register int i5 asm("$8") = arg5; \
   rv; \
 })
 
+/* Definitions of common functions */
+#define memset _mips_memset
+#define memcpy _mips_memcpy
+
+static inline void *_mips_memcpy(void *dest, const void *src, unsigned int n)
+{
+  int i;
+  unsigned char *_dst = dest;
+  const unsigned char *_src = src;
+  for (i=0;i<n;i++)
+    _dst[i] = _src[i];
+  
+  return dest;
+}
+
+static inline void *_mips_memset(void *s, int c, unsigned int n)
+{
+  int i;
+  unsigned char *dst = s;
+  for (i=0;i<n;i++)
+    dst[i] = c;
+  
+  return s;
+}
 
 /* Definitions for SPSIM syscalls */
 
@@ -101,4 +125,4 @@ int write(int, void*, unsigned);
 int close(int);
 int lseek(int, unsigned, int);
 
-#endif	/* SPIM_MIPS_H__ */
+#endif	/* SPIM_MIPS_H */
