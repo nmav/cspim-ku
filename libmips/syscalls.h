@@ -5,8 +5,11 @@
  *
  * Interface to system calls.
  */
+
 #ifndef CSPIM_MIPS_H
 #define CSPIM_MIPS_H
+
+#define USER_SYSCALL(x) (x+0x1f)
 
 #define SYSCALL1( n, arg1) \
 ({ \

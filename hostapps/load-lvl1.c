@@ -44,7 +44,7 @@
 int main(int argc, char **argv)
 {
 	char *base, *l1elf, *l2elf;
-	size_t l1sz, l2sz;
+	unsigned int l1sz, l2sz;
 	Elf32_Sym *sl2_elf, *sl2_elf_size;
 	struct mips_cpu *pcpu;
 	

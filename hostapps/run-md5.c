@@ -48,11 +48,11 @@ static int syscall_fn(void* _priv, unsigned int no, uint32_t arg1, uint32_t arg2
 	int len;
 	
 	switch(no) {
-		case 1: /* write the text to be hashed */
+		case USER_SYSCALL(1): /* write the text to be hashed */
 			len = strlen(priv->text);
 			cspim_mips_write(priv->pcpu, arg1, priv->text, len);
 			return len;
-		case 2: /* read the hashed text */
+		case USER_SYSCALL(2): /* read the hashed text */
 			if (arg2 != 16) {
 				fprintf(stderr, "illegal size of %u\n", arg2);
 				exit(1);

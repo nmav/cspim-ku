@@ -38,7 +38,6 @@
 #include "cpu.h"
 #include "cspim.h"
 
-
 static mips_uword cipher_peek(MIPS_CPU *pcpu, mips_uword addr);
 static void cipher_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w);
 
@@ -230,13 +229,21 @@ execute:
 	case MIPS_I_BREAK:
 		return 0;
 	case MIPS_I_SYSCALL:
-		if (fn) {
-			ret = fn(priv, pcpu->r.ur[2], pcpu->r.ur[4], 
-				pcpu->r.ur[5], pcpu->r.ur[6], 
-				pcpu->r.ur[7], pcpu->r.ur[8]);
-			pcpu->r.sr[2] = ret;
+		if (pcpu->r.ur[2] >= USER_SYSCALL(0)) {
+			if (fn) {
+				ret = fn(priv, pcpu->r.ur[2], pcpu->r.ur[4], 
+					pcpu->r.ur[5], pcpu->r.ur[6], 
+					pcpu->r.ur[7], pcpu->r.ur[8]);
+				pcpu->r.sr[2] = ret;
+			} else {
+				pcpu->r.sr[2] = -1;
+			}
 		} else {
-			pcpu->r.sr[2] = -1;
+			if((err = mips_spim_syscall(pcpu)) != 0) {
+				fprintf(stderr, "END: SPIM SERVICE %d FAULTED (%d)\n",
+						pcpu->r.ur[2], err);
+				return -1;
+			}
 		}
 		mips_resume(pcpu);
 		goto execute;

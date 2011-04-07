@@ -26,13 +26,14 @@ int ret;
 
 	return 0;
 #else
-	ret = SYSCALL2(1, (unsigned int)string, sizeof(string));
+	print_string("This is the emulated program. Will try to calculate MD5...\n");
+	ret = SYSCALL2(USER_SYSCALL(1), (unsigned int)string, sizeof(string));
 	if (ret > 0) {
 		size = ret;
 		md5_update(&ctx, size, string);
 		md5_digest(&ctx, 16, string);
 
-		ret = SYSCALL2(2, (unsigned int)string, 16);
+		ret = SYSCALL2(USER_SYSCALL(2), (unsigned int)string, 16);
 		if (ret == 0)
 			return 0;
 	}

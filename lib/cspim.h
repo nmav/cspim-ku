@@ -38,6 +38,8 @@
 
 #include <stdint.h>
 
+#define USER_SYSCALL(x) (x+0x1f)
+
 typedef unsigned short RC5_WORD;
 #define CIPHER_BLOCKSZ	4			/* (bytes) */
 #define RC5_KEYLEN	16			/* (bytes) */
