@@ -128,4 +128,20 @@ int write(int, void*, unsigned);
 int close(int);
 int lseek(int, unsigned, int);
 
+#define malloc(x) _mips_malloc(x)
+#define free(x) _mips_free(x)
+
+void * _mips_malloc(unsigned int);
+void _mips_free(void*);
+
+inline static void* calloc(unsigned int x, unsigned int s)
+{
+  unsigned int size = s*x;
+  void * ptr = malloc(size);
+  if (ptr == 0)
+    memset(ptr, 0, size);
+  
+  return ptr;
+}
+
 #endif	/* SPIM_MIPS_H */
