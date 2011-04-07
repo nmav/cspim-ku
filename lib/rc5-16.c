@@ -126,16 +126,16 @@ static void rc5_ecb_encrypt(const struct cipher_key *ks, void *srcv, void *dstv)
 #undef S
 }
 
-/* Encrypts in CTR-32bit mode. counter should be a unique IV.
+/* Encrypts in RCTR-32bit mode. counter should be a unique IV.
  */
-void cipher_ctr_encrypt(const struct cipher_key *ks, void* counter, void *_src, void *_dst)
+void cipher_rctr_encrypt(const struct cipher_key *ks, void* _counter, void *_src, void *_dst)
 {
-uint32_t* dst = _dst;
-uint32_t src = *((uint32_t*)_src);
+uint32_t* counter = _counter;
+uint32_t *src = ((uint32_t*)_src);
 
-	rc5_ecb_encrypt(ks, counter, dst);
+	*counter ^= *src;
 
-	*dst ^= src;
+	rc5_ecb_encrypt(ks, counter, _dst);
 }
 
 static void rc5_ecb_decrypt(const struct cipher_key *ks, void *srcv, void *dstv)
@@ -161,6 +161,18 @@ static void rc5_ecb_decrypt(const struct cipher_key *ks, void *srcv, void *dstv)
 	dst[0] = A & 0xFF;
 #undef S
 }
+
+/* Decrypts in RCTR-32bit mode. counter should be a unique IV.
+ */
+void cipher_rctr_decrypt(const struct cipher_key *ks, void* _counter, void *_src, void *_dst)
+{
+uint32_t* counter = _counter;
+uint32_t* dst = ((uint32_t*)_dst);
+
+	rc5_ecb_decrypt(ks, _src, dst);
+	*dst ^= *counter;
+}
+
 
 #ifdef RC5_TEST
 

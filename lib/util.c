@@ -268,7 +268,7 @@ static mips_uword cipher_peek(MIPS_CPU *pcpu, mips_uword addr)
 	ctr[2] = (addr) >> 16;
 	ctr[3] = (addr) >> 24;
 
-	cipher_ctr_decrypt(pcpu->priv, &ctr, &ret, &ret);
+	cipher_rctr_decrypt(pcpu->priv, &ctr, &ret, &ret);
 	return ret;
 }
 
@@ -281,7 +281,7 @@ static void cipher_poke(MIPS_CPU *pcpu, mips_uword addr, mips_uword w)
 	ctr[2] = (addr) >> 16;
 	ctr[3] = (addr) >> 24;
 
-	cipher_ctr_encrypt(pcpu->priv, &ctr, &w, &w);
+	cipher_rctr_encrypt(pcpu->priv, &ctr, &w, &w);
 	mips_identity_poke_uw(pcpu, addr, w);
 }
 

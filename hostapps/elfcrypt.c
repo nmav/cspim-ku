@@ -162,7 +162,7 @@ static void crypt_segment(const struct cipher_key *pk, char *elf,
                 ctr[1] = (w) >> 8;
 		ctr[2] = (w) >> 16;
 		ctr[3] = (w) >> 24;
-		cipher_ctr_encrypt(pk, ctr, p+i, p+i);
+		cipher_rctr_encrypt(pk, ctr, p+i, p+i);
 	}
 }
 

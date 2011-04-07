@@ -109,9 +109,8 @@ void cipher_setup(struct cipher_key *ks);
 
 /* Counter mode encryption 
  */
-void cipher_ctr_encrypt(const struct cipher_key *ks, void* counter, void *src, void *dst);
-
-#define cipher_ctr_decrypt cipher_ctr_encrypt
+void cipher_rctr_encrypt(const struct cipher_key *ks, void* counter, void *src, void *dst);
+void cipher_rctr_decrypt(const struct cipher_key *ks, void* counter, void *src, void *dst);
 
 
 #endif	/* UTIL_H__ */
