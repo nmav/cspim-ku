@@ -9,6 +9,8 @@
 #ifndef CSPIM_MIPS_H
 #define CSPIM_MIPS_H
 
+/* Macros to allow arbitrary system call execution
+ */
 #define USER_SYSCALL(x) (x+0x1f)
 
 #define SYSCALL1( n, arg1) \
@@ -79,6 +81,7 @@ register int i5 asm("$8") = arg5; \
 /* Definitions of common functions */
 #define memset _mips_memset
 #define memcpy _mips_memcpy
+#define memcmp _mips_memcmp
 
 static inline void *_mips_memcpy(void *dest, const void *src, unsigned int n)
 {
@@ -99,6 +102,17 @@ static inline void *_mips_memset(void *s, int c, unsigned int n)
     dst[i] = c;
   
   return s;
+}
+
+static inline int _mips_memcmp(const void *s1, const void* s2, unsigned int n)
+{
+  int i;
+  const unsigned char *ss1 = s1;
+  const unsigned char *ss2 = s2;
+  for (i=0;i<n;i++)
+    if (ss1[i] != ss2[i]) return 1;
+  
+  return 0;
 }
 
 /* Definitions for SPSIM syscalls */
