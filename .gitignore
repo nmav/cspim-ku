@@ -41,3 +41,4 @@ cspimapps/test
 libmips/*.o
 cspimapps/md5
 hostapps/run-md5
+libmips/libmips.a
