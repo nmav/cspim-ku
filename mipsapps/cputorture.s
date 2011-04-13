@@ -86,8 +86,8 @@
 		.set	noreorder
 		.set	nobopt
 
-		.globl _start
-_start:
+		.globl __start
+__start:
 #  ===========================================================================
 #  COPYRIGHT (c) 2008 Zeljko Vrba <zvrba.external@zvrba.net>
 # 
