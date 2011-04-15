@@ -13,6 +13,13 @@ struct md5_ctx ctx;
 unsigned int size;
 int ret;
 
+#ifdef REPEAT
+	do {
+#else
+	print_string("This is the emulated program. Will try to calculate MD5...\n");
+#endif
+
+
 	md5_init(&ctx);
 
 	/* pass the string address above */
@@ -26,17 +33,23 @@ int ret;
 
 	return 0;
 #else
-	print_string("This is the emulated program. Will try to calculate MD5...\n");
 	ret = SYSCALL2(USER_SYSCALL(1), (unsigned int)string, sizeof(string));
 	if (ret > 0) {
 		size = ret;
 		md5_update(&ctx, size, string);
 		md5_digest(&ctx, 16, string);
 
+#ifndef REPEAT
 		ret = SYSCALL2(USER_SYSCALL(2), (unsigned int)string, 16);
 		if (ret == 0)
 			return 0;
+#endif
 	}
 #endif	
+
+#ifdef REPEAT
+	} while(SYSCALL1(USER_SYSCALL(0),0)==0);
+#endif
+
 	return 1;
 }
