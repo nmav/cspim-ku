@@ -13,7 +13,6 @@ hostapps/run
 hostapps/runtorture
 hostapps/sstep
 lib/CMakeFiles/
-lib/CMakeLists.txt
 lib/Makefile
 lib/cmake_install.cmake
 lib/libcspim.a
